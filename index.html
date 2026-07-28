@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMECARE · Poste opérationnel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0A0C0D;
+  --panel:#12171A;
+  --panel-2:#171E22;
+  --line:#222B30;
+  --ink:#E6EBEA;
+  --dim:#6E7C82;
+  --signal:#FFAE35;
+  --alert:#FF5D4A;
+  --ok:#57D98A;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--void);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+/* ── PORTE ─────────────────────────────────────────── */
+#gate{
+  position:fixed;inset:0;z-index:100;background:var(--void);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;
+}
+.gate-mark{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--signal)}
+.gate-title{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.04em}
+.gate-row{display:flex;gap:8px;width:100%;max-width:340px}
+.gate-row input{
+  flex:1;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--mono);font-size:14px;padding:11px 13px;border-radius:2px;
+}
+.gate-row button{
+  background:var(--signal);color:#0A0C0D;font-family:var(--mono);font-weight:600;
+  font-size:13px;padding:11px 18px;border-radius:2px;
+}
+#gateErr{font-family:var(--mono);font-size:12px;color:var(--alert);min-height:16px}
+
+/* ── STRUCTURE ─────────────────────────────────────── */
+#app{display:none;height:100%;grid-template-columns:268px 1fr}
+#app.on{display:grid}
+
+/* ── RAIL GAUCHE ───────────────────────────────────── */
+aside{
+  background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--line)}
+.brand-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--signal);margin-bottom:6px}
+.brand-name{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.02em}
+.brand-sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:3px}
+
+.rail-scroll{flex:1;overflow-y:auto;padding:16px 0}
+.rail-head{
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--dim);padding:0 18px 10px;
+}
+.tally{display:flex;gap:8px;padding:0 18px 20px}
+.tally-cell{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:2px;padding:9px 10px}
+.tally-num{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1}
+.tally-num.late{color:var(--alert)}
+.tally-num.idle{color:var(--signal)}
+.tally-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+
+.roster{list-style:none;padding:0 8px}
+.roster li{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:2px;font-family:var(--mono);font-size:12px;
+}
+.led{width:6px;height:6px;border-radius:50%;background:var(--dim);flex:none}
+.led.late{background:var(--alert);box-shadow:0 0 0 3px rgba(255,93,74,.14)}
+.led.idle{background:var(--signal);box-shadow:0 0 0 3px rgba(255,174,53,.14)}
+.led.ok{background:var(--ok)}
+.roster .who{flex:1;text-transform:capitalize;letter-spacing:.02em}
+.roster .cnt{color:var(--dim);font-size:11px}
+
+.rail-foot{border-top:1px solid var(--line);padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.rail-foot button{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.08em}
+.rail-foot button:hover{color:var(--signal)}
+
+/* ── COLONNE CHAT ──────────────────────────────────── */
+main{display:flex;flex-direction:column;overflow:hidden;background:var(--void)}
+.topbar{
+  height:52px;border-bottom:1px solid var(--line);flex:none;
+  display:flex;align-items:center;justify-content:space-between;padding:0 22px;
+}
+.topbar h1{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.link-state{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+#log{flex:1;overflow-y:auto;padding:26px 22px 12px}
+.wrap{max-width:760px;margin:0 auto}
+
+.turn{margin-bottom:24px}
+.turn-tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px;
+}
+.turn.me .turn-tag{color:var(--signal)}
+.bubble{font-size:15px}
+.turn.me .bubble{
+  background:var(--panel);border-left:2px solid var(--signal);
+  padding:11px 15px;border-radius:0 2px 2px 0;
+}
+.bubble b{font-weight:600}
+.bubble ul{margin:8px 0 8px 18px}
+.bubble li{margin-bottom:4px}
+.bubble table{width:100%;border-collapse:collapse;margin:12px 0;font-family:var(--mono);font-size:12.5px}
+.bubble th,.bubble td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+.bubble th{background:var(--panel);color:var(--dim);font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px}
+
+/* SIGNATURE : bordereau d'envoi Slack */
+.slip{
+  border:1px solid var(--line);border-left:3px solid var(--ok);
+  background:var(--panel);border-radius:0 2px 2px 0;margin-top:12px;overflow:hidden;
+}
+.slip.blocked{border-left-color:var(--alert)}
+.slip.failed{border-left-color:var(--alert)}
+.slip-head{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:9px 14px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;
+}
+.slip-status{letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ok)}
+.slip.blocked .slip-status,.slip.failed .slip-status{color:var(--alert)}
+.slip-to{color:var(--ink);text-transform:capitalize}
+.slip-motif{color:var(--dim);flex:1;min-width:120px}
+.slip-ts{color:var(--dim);font-variant-numeric:tabular-nums}
+.slip-body{padding:11px 14px;font-size:14px;white-space:pre-wrap;color:#CFD6D5}
+.slip-err{padding:9px 14px;font-family:var(--mono);font-size:11.5px;color:var(--alert)}
+
+.thinking{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--signal);animation:pulse 1.1s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.18s}
+.dot:nth-child(3){animation-delay:.36s}
+@keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}
+
+.starters{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px}
+.starters button{
+  font-family:var(--mono);font-size:11.5px;color:var(--dim);
+  border:1px solid var(--line);background:var(--panel);
+  padding:7px 12px;border-radius:2px;text-align:left;
+}
+.starters button:hover{border-color:var(--signal);color:var(--ink)}
+
+/* ── SAISIE ────────────────────────────────────────── */
+.composer{flex:none;border-top:1px solid var(--line);padding:14px 22px 18px;background:var(--void)}
+.composer-inner{max-width:760px;margin:0 auto;display:flex;gap:9px;align-items:flex-end}
+textarea{
+  flex:1;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  font-family:var(--sans);font-size:15px;padding:12px 14px;border-radius:2px;
+  resize:none;min-height:46px;max-height:170px;line-height:1.5;
+}
+textarea::placeholder{color:var(--dim)}
+textarea:focus{border-color:#33403f;outline:none}
+.btn-mic,.btn-send{
+  flex:none;width:46px;height:46px;border:1px solid var(--line);background:var(--panel);
+  border-radius:2px;display:grid;place-items:center;position:relative;
+}
+.btn-mic:hover,.btn-send:hover{border-color:var(--signal)}
+.btn-send{background:var(--signal);border-color:var(--signal);color:#0A0C0D}
+.btn-send:disabled{opacity:.35;cursor:not-allowed}
+.btn-mic.live{border-color:var(--alert);color:var(--alert)}
+.btn-mic.live::after{
+  content:"";position:absolute;inset:-4px;border:1px solid var(--alert);border-radius:3px;
+  animation:ring 1.3s ease-out infinite;
+}
+@keyframes ring{0%{opacity:.8;transform:scale(.9)}100%{opacity:0;transform:scale(1.18)}}
+.btn-mic[hidden]{display:none}
+.hint{
+  max-width:760px;margin:8px auto 0;font-family:var(--mono);font-size:10.5px;
+  color:var(--dim);letter-spacing:.06em;display:flex;justify-content:space-between;gap:12px;
+}
+.hint .warn{color:var(--signal)}
+
+/* ── MODALE ────────────────────────────────────────── */
+#settings{position:fixed;inset:0;z-index:90;background:rgba(10,12,13,.82);display:none;place-items:center;padding:24px}
+#settings.on{display:grid}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:22px;width:100%;max-width:420px}
+.sheet h2{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--signal);margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.field input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:9px 11px;border-radius:2px}
+.sheet-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.sheet-actions button{font-family:var(--mono);font-size:12px;padding:9px 15px;border:1px solid var(--line);border-radius:2px}
+.sheet-actions .primary{background:var(--signal);border-color:var(--signal);color:#0A0C0D;font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+@media (max-width:760px){
+  #app.on{grid-template-columns:1fr}
+  aside{display:none}
+  aside.open{display:flex;position:fixed;inset:0;z-index:60;width:100%}
+  .topbar{padding:0 16px}
+  #log{padding:18px 16px 10px}
+  .composer{padding:12px 16px 16px}
+}
+.burger{display:none;font-family:var(--mono);font-size:15px;color:var(--dim)}
+@media (max-width:760px){.burger{display:block}}
+</style>
+</head>
+<body>
+
+<!-- PORTE -->
+<div id="gate">
+  <div class="gate-mark">Omecare Medical</div>
+  <div class="gate-title">Poste opérationnel</div>
+  <div class="gate-row">
+    <input id="pw" type="password" placeholder="Code d'accès" autocomplete="current-password">
+    <button id="gateBtn">Entrer</button>
+  </div>
+  <div id="gateErr"></div>
+</div>
+
+<!-- APPLICATION -->
+<div id="app">
+
+  <aside id="rail">
+    <div class="brand">
+      <div class="brand-eyebrow">Omecare Medical</div>
+      <div class="brand-name">Poste opérationnel</div>
+      <div class="brand-sub">Relais Slack &amp; suivi d'avancement</div>
+    </div>
+
+    <div class="rail-scroll">
+      <div class="rail-head">État du réseau</div>
+      <div class="tally">
+        <div class="tally-cell"><div class="tally-num late" id="kpiLate">—</div><div class="tally-lbl">En retard</div></div>
+        <div class="tally-cell"><div class="tally-num idle" id="kpiIdle">—</div><div class="tally-lbl">Dormants</div></div>
+      </div>
+
+      <div class="rail-head">Équipe</div>
+      <ul class="roster" id="roster">
+        <li><span class="led"></span><span class="who" style="color:var(--dim)">chargement au 1er message</span></li>
+      </ul>
+    </div>
+
+    <div class="rail-foot">
+      <button id="btnSettings">Réglages</button>
+      <button id="btnReset">Nouvelle session</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px">
+        <button class="burger" id="burger" aria-label="Afficher l'équipe">☰</button>
+        <h1>Conversation</h1>
+      </div>
+      <div class="link-state"><span class="led ok" id="linkLed"></span><span id="linkTxt">prêt</span></div>
+    </div>
+
+    <div id="log">
+      <div class="wrap" id="wrap">
+        <div class="turn">
+          <div class="turn-tag">Assistant</div>
+          <div class="bubble">
+            Je lis l'avancement dans Airtable et j'écris directement à l'équipe sur Slack. Dis-moi ce que tu veux savoir, ou qui relancer.
+            <div class="starters">
+              <button>Où on en est sur les ouvertures de cabinets ?</button>
+              <button>Qui a des dossiers en retard aujourd'hui ?</button>
+              <button>Relance les responsables des devis dépassés</button>
+              <button>Fais le point sur les conversions par CSM</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="input" rows="1" placeholder="Écris ou dicte ta demande…"></textarea>
+        <button class="btn-mic" id="btnMic" aria-label="Dicter" title="Dicter">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+            <path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/>
+          </svg>
+        </button>
+        <button class="btn-send" id="btnSend" aria-label="Envoyer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+        </button>
+      </div>
+      <div class="hint">
+        <span id="hintLeft">Entrée pour envoyer · Maj+Entrée pour un retour à la ligne</span>
+        <span class="warn">Les messages Slack partent sans validation</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- RÉGLAGES -->
+<div id="settings">
+  <div class="sheet">
+    <h2>Réglages</h2>
+    <div class="field">
+      <label for="setWebhook">URL du webhook n8n</label>
+      <input id="setWebhook" type="text" placeholder="https://omecare.app.n8n.cloud/webhook/ops-assistant">
+    </div>
+    <div class="sheet-actions">
+      <button id="setCancel">Annuler</button>
+      <button class="primary" id="setSave">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ CONFIGURATION ═══════════════════════════════════ */
+const WEBHOOK_DEFAUT = 'https://omecare.app.n8n.cloud/webhook/ops-assistant';
+const CODE_ACCES = 'omecare2026';   // change-le
+
+/* ═══ ÉTAT ════════════════════════════════════════════ */
+const state = { messages: [], busy: false };
+const $ = id => document.getElementById(id);
+const webhook = () => localStorage.getItem('ops_webhook') || WEBHOOK_DEFAUT;
+
+/* ═══ PORTE ═══════════════════════════════════════════ */
+function ouvrir(){
+  if ($('pw').value !== CODE_ACCES){
+    $('gateErr').textContent = 'Code incorrect.';
+    $('pw').value = ''; $('pw').focus();
+    return;
+  }
+  $('gate').style.display = 'none';
+  $('app').classList.add('on');
+  $('input').focus();
+}
+$('gateBtn').onclick = ouvrir;
+$('pw').onkeydown = e => { if (e.key === 'Enter') ouvrir(); };
+
+/* ═══ RENDU ═══════════════════════════════════════════ */
+function tour(role, html){
+  const d = document.createElement('div');
+  d.className = 'turn' + (role === 'me' ? ' me' : '');
+  d.innerHTML = '<div class="turn-tag">' + (role === 'me' ? 'Leonardo' : 'Assistant') +
+                '</div><div class="bubble">' + html + '</div>';
+  $('wrap').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+  return d;
+}
+
+function echapper(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* Bordereaux d'envoi Slack */
+function bordereaux(journal){
+  if (!journal || !journal.length) return '';
+  const heure = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+  return journal.map(j => {
+    const cls = j.statut === 'envoyé' ? '' : (j.statut === 'bloqué' ? ' blocked' : ' failed');
+    const label = j.statut === 'envoyé' ? 'Envoyé' : (j.statut === 'bloqué' ? 'Bloqué' : 'Échec');
+    let html = '<div class="slip' + cls + '">' +
+      '<div class="slip-head">' +
+        '<span class="slip-status">' + label + '</span>' +
+        '<span class="slip-to">' + echapper(j.destinataire) + '</span>' +
+        '<span class="slip-motif">' + echapper(j.motif) + '</span>' +
+        '<span class="slip-ts">' + heure + '</span>' +
+      '</div>';
+    if (j.message) html += '<div class="slip-body">' + echapper(j.message) + '</div>';
+    if (j.erreur)  html += '<div class="slip-err">' + echapper(j.erreur) + '</div>';
+    return html + '</div>';
+  }).join('');
+}
+
+/* Sidebar */
+function majRail(kpi){
+  if (!kpi || !kpi.par_collaborateur) return;
+  $('kpiLate').textContent = kpi.total_retards != null ? kpi.total_retards : '—';
+  $('kpiIdle').textContent = kpi.total_dormants != null ? kpi.total_dormants : '—';
+
+  const p = kpi.par_collaborateur;
+  const noms = Object.keys(p).sort((a,b) =>
+    (p[b].retards.length - p[a].retards.length) || a.localeCompare(b));
+
+  $('roster').innerHTML = noms.map(n => {
+    const c = p[n];
+    let led = 'ok', info = c.enCours + ' en cours';
+    if (c.retards.length){ led = 'late'; info = c.retards.length + ' en retard'; }
+    else if (c.dormants.length){ led = 'idle'; info = c.dormants.length + ' dormant' + (c.dormants.length>1?'s':''); }
+    return '<li><span class="led ' + led + '"></span>' +
+           '<span class="who">' + echapper(n) + '</span>' +
+           '<span class="cnt">' + info + '</span></li>';
+  }).join('');
+}
+
+/* ═══ ENVOI ═══════════════════════════════════════════ */
+async function envoyer(texte){
+  if (state.busy) return;
+  const q = (texte != null ? texte : $('input').value).trim();
+  if (!q) return;
+
+  state.busy = true;
+  $('btnSend').disabled = true;
+  $('input').value = '';
+  $('input').style.height = 'auto';
+
+  tour('me', echapper(q));
+  state.messages.push({ role:'user', content:q });
+
+  const attente = tour('bot',
+    '<div class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span>' +
+    '<span>lecture Airtable</span></div>');
+
+  $('linkLed').className = 'led idle';
+  $('linkTxt').textContent = 'en cours';
+
+  try {
+    const r = await fetch(webhook(), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ messages: state.messages })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+
+    const data = await r.json();
+    const d = Array.isArray(data) ? data[0] : data;
+    const reponse = (d && (d.answer || d.output)) || 'Réponse vide.';
+
+    attente.querySelector('.bubble').innerHTML = reponse + bordereaux(d && d.journal_envois);
+    state.messages.push({ role:'assistant', content: reponse.replace(/<[^>]+>/g,' ') });
+    majRail(d && d.kpi);
+
+    $('linkLed').className = 'led ok';
+    $('linkTxt').textContent = 'prêt';
+
+  } catch (e) {
+    attente.querySelector('.bubble').innerHTML =
+      '<div class="slip failed"><div class="slip-head">' +
+      '<span class="slip-status">Hors ligne</span>' +
+      '<span class="slip-motif">Le workflow n8n n\'a pas répondu</span></div>' +
+      '<div class="slip-err">' + echapper(e.message) + ' · Vérifie que le workflow « ops-assistant » est actif ' +
+      'et que cette page est servie en HTTPS, pas ouverte en file://</div></div>';
+    $('linkLed').className = 'led late';
+    $('linkTxt').textContent = 'erreur';
+  }
+
+  state.busy = false;
+  $('btnSend').disabled = false;
+  $('log').scrollTop = $('log').scrollHeight;
+  $('input').focus();
+}
+
+$('btnSend').onclick = () => envoyer();
+$('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); envoyer(); }
+});
+$('input').addEventListener('input', function(){
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 170) + 'px';
+});
+document.addEventListener('click', e => {
+  if (e.target.closest('.starters button')) envoyer(e.target.textContent);
+});
+
+/* ═══ DICTÉE ══════════════════════════════════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let reco = null, ecoute = false;
+
+if (!SR){
+  $('btnMic').hidden = true;
+  $('hintLeft').textContent = 'Entrée pour envoyer · dictée indisponible sur ce navigateur';
+} else {
+  reco = new SR();
+  reco.lang = 'fr-FR';
+  reco.continuous = true;
+  reco.interimResults = true;
+
+  let acquis = '';
+
+  reco.onresult = ev => {
+    let partiel = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++){
+      const t = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) acquis += t + ' '; else partiel += t;
+    }
+    $('input').value = (acquis + partiel).replace(/\s+/g,' ').trimStart();
+    $('input').dispatchEvent(new Event('input'));
+  };
+
+  reco.onend = () => {
+    ecoute = false;
+    $('btnMic').classList.remove('live');
+    $('hintLeft').textContent = 'Entrée pour envoyer · Maj+Entrée pour un retour à la ligne';
+  };
+
+  reco.onerror = ev => {
+    ecoute = false;
+    $('btnMic').classList.remove('live');
+    $('hintLeft').textContent = ev.error === 'not-allowed'
+      ? 'Micro refusé — autorise-le dans les réglages du navigateur'
+      : 'Dictée interrompue (' + ev.error + ')';
+  };
+
+  $('btnMic').onclick = () => {
+    if (ecoute){ reco.stop(); return; }
+    acquis = $('input').value ? $('input').value + ' ' : '';
+    try {
+      reco.start();
+      ecoute = true;
+      $('btnMic').classList.add('live');
+      $('hintLeft').textContent = 'Dictée en cours — reclique sur le micro pour arrêter';
+    } catch (e) {
+      $('hintLeft').textContent = 'Dictée indisponible : ' + e.message;
+    }
+  };
+}
+
+/* ═══ RÉGLAGES & DIVERS ═══════════════════════════════ */
+$('btnSettings').onclick = () => {
+  $('setWebhook').value = webhook();
+  $('settings').classList.add('on');
+};
+$('setCancel').onclick = () => $('settings').classList.remove('on');
+$('setSave').onclick = () => {
+  const v = $('setWebhook').value.trim();
+  if (v) localStorage.setItem('ops_webhook', v);
+  $('settings').classList.remove('on');
+};
+$('btnReset').onclick = () => {
+  if (!confirm('Effacer la conversation en cours ?')) return;
+  state.messages = [];
+  $('wrap').innerHTML = '';
+  tour('bot', 'Session réinitialisée. Qu\'est-ce qu\'on regarde ?');
+  $('rail').classList.remove('open');
+};
+$('burger').onclick = () => $('rail').classList.toggle('open');
+</script>
+</body>
+</html>
